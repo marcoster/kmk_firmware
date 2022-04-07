@@ -6,16 +6,21 @@ from kmk.matrix import DiodeOrientation
 
 class KMKKeyboard(_KMKKeyboard):
     col_pins = (
-        board.P0_02,
-        board.P1_15,
-        board.P1_13,
-        board.P1_11,
-        board.P0_10,
-        board.P0_09,
+        board.DA1,
+        board.A0,
+        board.D15,
+        board.D14,
+        board.D16,
+        board.D10,
     )
-    row_pins = (board.P0_24, board.P1_00, board.P0_11, board.P1_04, board.P1_06)
+    row_pins = (
+        board.D5,
+        board.D6,
+        board.D7,
+        board.D8,
+        board.D9)
     diode_orientation = DiodeOrientation.COLUMNS
-    uart_pin = board.P0_08
+    uart_pin = board.D1
     rgb_pixel_pin = board.P0_06
     data_pin = board.P0_08
     i2c = board.I2C
