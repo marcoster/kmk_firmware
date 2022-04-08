@@ -9,7 +9,7 @@ from kmk.modules.modtap import ModTap
 from kmk.modules.split import Split, SplitType
 
 keyboard = KMKKeyboard()
-keyboard.debug_enabled = True
+keyboard.debug_enabled = False
 
 keyboard.modules.append(Layers())
 keyboard.modules.append(ModTap())
