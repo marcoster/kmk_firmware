@@ -14,12 +14,10 @@ class KMKKeyboard(_KMKKeyboard):
         board.MOSI,
         board.D10,
     )
-    row_pins = (board.D6, board.D7, board.D8, board.D9)
+    row_pins = (board.D5, board.D6, board.D7, board.D8, board.D9)
     diode_orientation = DiodeOrientation.COL2ROW
     data_pin = board.D1
-    rgb_pixel_pin = board.D0
-    encoder_pin_0 = board.A2
-    encoder_pin_1 = board.A3
+    rgb_pixel_pin = board.NEOPIXEL
 
 #    coord_mapping = []
 #    coord_mapping.extend(ic(0, x, 8) for x in range(6))

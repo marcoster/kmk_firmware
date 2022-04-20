@@ -3,7 +3,6 @@ from kyria_v1_kb2040 import KMKKeyboard
 from kmk.extensions.media_keys import MediaKeys
 from kmk.extensions.rgb import RGB, AnimationModes
 from kmk.keys import KC
-from kmk.modules.encoder import EncoderHandler
 from kmk.modules.layers import Layers
 from kmk.modules.modtap import ModTap
 from kmk.modules.split import Split, SplitType
@@ -19,14 +18,10 @@ keyboard.extensions.append(MediaKeys())
 split = Split(split_type=SplitType.UART, use_pio=True)
 keyboard.modules.append(split)
 
-# Uncomment below if you're using encoder
-encoder_handler = EncoderHandler()
-encoder_handler.pins = ((keyboard.encoder_pin_0, keyboard.encoder_pin_1, None, False),)
-
 # Uncomment below if you're having RGB
 rgb_ext = RGB(
     pixel_pin=keyboard.rgb_pixel_pin,
-    num_pixels=10,
+    num_pixels=1,
     animation_mode=AnimationModes.BREATHING_RAINBOW,
 )
 keyboard.extensions.append(rgb_ext)
@@ -81,19 +76,6 @@ keyboard.keymap = [
                                                      KC.TRNS,       KC.TRNS,       KC.TRNS,       KC.TRNS,       KC.TRNS,       KC.TRNS,       KC.TRNS,       KC.TRNS,       KC.TRNS,       KC.TRNS,
     ],
 ]
-
-# Uncomment below if using an encoder
-# Edit your encoder layout below
-encoder_handler.map = (
-    ((KC.VOLD, KC.VOLU),),
-    ((KC.VOLD, KC.VOLU),),
-    ((KC.VOLD, KC.VOLU),),
-    ((KC.MPRV, KC.MNXT),),
-    ((KC.MPRV, KC.MNXT),),
-    ((KC.MPRV, KC.MNXT),),
-    ((KC.MPRV, KC.MNXT),),
-)
-keyboard.modules.append(encoder_handler)
 
 if __name__ == '__main__':
     keyboard.go()
