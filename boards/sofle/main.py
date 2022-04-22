@@ -22,7 +22,8 @@ keyboard.modules.append(split)
 rgb_ext = RGB(
     pixel_pin=keyboard.rgb_pixel_pin,
     num_pixels=1,
-    animation_mode=AnimationModes.BREATHING_RAINBOW,
+    hue_default=0,
+    animation_mode=AnimationModes.OFF,
 )
 keyboard.extensions.append(rgb_ext)
 
