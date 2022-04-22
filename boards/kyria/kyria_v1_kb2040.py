@@ -14,7 +14,7 @@ class KMKKeyboard(_KMKKeyboard):
         board.MOSI,
         board.D10,
     )
-    row_pins = (board.D5, board.D6, board.D7, board.D8, board.D9)
+    row_pins = (board.D9, board.D8, board.D7, board.D6, board.D5)
     diode_orientation = DiodeOrientation.COL2ROW
     data_pin = board.D1
     rgb_pixel_pin = board.NEOPIXEL

@@ -34,10 +34,11 @@ ENT_LALT = KC.MT(KC.ENT, KC.LALT)
 MINUS_RCTL = KC.MT(KC.MINUS, KC.RCTL)
 keyboard.keymap = [
     [
-        KC.TAB,        KC.Q,          KC.W,          KC.E,          KC.R,          KC.T,                                                                      KC.Y,          KC.U,          KC.I,          KC.O,          KC.P,          KC.BSPC,
-        ESC_LCTL,      KC.A,          KC.S,          KC.D,          KC.F,          KC.G,                                                                      KC.H,          KC.J,          KC.K,          KC.L,          KC.SCLN,       QUOTE_RCTL,
-        KC.LSFT,       KC.Z,          KC.X,          KC.C,          KC.V,          KC.B,          KC.LBRC,       KC.CAPS,       KC.MO(5),      KC.RBRC,       KC.N,          KC.M,          KC.COMM,       KC.DOT,        KC.SLSH,       KC.RSFT,
-                                                     KC.MO(6),      KC.LGUI,       ENT_LALT,      KC.SPC,        KC.MO(3),      KC.MO(4),      KC.SPC,        KC.RALT,       KC.RGUI,       KC.APP,
+        KC.ESC,     KC.N1,      KC.N2,      KC.N3,          KC.N4,      KC.N5,      KC.N6,      KC.N7,      KC.N8,      KC.N9,      KC.N0,      KC.EQL,
+        KC.TAB,     KC.Q,       KC.W,       KC.E,           KC.R,       KC.T,       KC.Y,       KC.U,       KC.I,       KC.O,       KC.P,       KC.BSPC,
+        KC.LSFT,    KC.A,       KC.S,       KC.D,           KC.F,       KC.G,       KC.H,       KC.J,       KC.K,       KC.L,       KC.SCLN,    QUOTE_RCTL,
+        KC.LCTL,    KC.Z,       KC.X,       KC.C,           KC.V,       KC.B,       KC.N,       KC.M,       KC.COMM,    KC.DOT,     KC.SLSH,    KC.RSFT,
+        KC.CAPS,    KC.MO(6),   KC.LGUI,    ENT_LALT,       KC.SPC,     KC.MO(3),   KC.MO(4),   KC.SPC,     KC.RALT,    KC.RGUI,    KC.APP,     KC.MO(5),
     ],
     [
         KC.TAB,        KC.QUOT,       KC.COMM,       KC.DOT,        KC.P,          KC.Y,                                                                      KC.F,          KC.G,          KC.C,          KC.R,          KC.L,          KC.BSPC,
