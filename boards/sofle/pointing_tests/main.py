@@ -1,5 +1,6 @@
 import board
 import busio
+import storage
 
 from kb import KMKKeyboard
 
@@ -11,6 +12,8 @@ from kmk.extensions.media_keys import MediaKeys
 
 from kmk.extensions.display import Display, SSD1306, TextEntry, ImageEntry
 from kmk.quickpin.pro_micro.kb2040 import pinout as pins
+
+from kmk.modules.pimoroni_trackball import PointingHandler, Trackball, TrackballMode, PointingHandler, KeyHandler, ScrollHandler, ScrollDirection
 
 keyboard = KMKKeyboard()
 
@@ -25,35 +28,53 @@ split = Split(
     use_pio=True,  # allows for UART to be used with PIO
 )
 
+keyboard.modules = [layers, split]
+
 i2c_bus = busio.I2C(pins[5], pins[4])
-driver = SSD1306(i2c=i2c_bus, device_address=0x3C,)
-display = Display(
-    # Mandatory:
-    display=driver,
-    # Optional:
-    width=128, # screen size
-    height=32, # screen size
-    flip = False, # flips your display content
-    flip_left = False, # flips your display content on left side split
-    flip_right = False, # flips your display content on right side split
-    brightness=0.8, # initial screen brightness level
-    brightness_step=0.1, # used for brightness increase/decrease keycodes
-    dim_time=20, # time in seconds to reduce screen brightness
-    dim_target=0.1, # set level for brightness decrease
-    off_time=60, # time in seconds to turn off screen
-    powersave_dim_time=10, # time in seconds to reduce screen brightness
-    powersave_dim_target=0.1, # set level for brightness decrease
-    powersave_off_time=30, # time in seconds to turn off screen
-)
-display.entries = [
-    TextEntry(text="Longer text that", x=0, y=0, layer=0),
-    TextEntry(text="has been divided", x=0, y=12, layer=0, side="L"),
-    TextEntry(text="for an example", x=0, y=12, layer=0, side="R"),
-]
-keyboard.extensions.append(display)
+name = str(storage.getmount('/').label)
+
+if name.endswith('L'):
+    driver = SSD1306(i2c=i2c_bus, device_address=0x3C,)
+    display = Display(
+        # Mandatory:
+        display=driver,
+        # Optional:
+        width=128, # screen size
+        height=32, # screen size
+        flip = False, # flips your display content
+        flip_left = False, # flips your display content on left side split
+        flip_right = False, # flips your display content on right side split
+        brightness=0.8, # initial screen brightness level
+        brightness_step=0.1, # used for brightness increase/decrease keycodes
+        dim_time=20, # time in seconds to reduce screen brightness
+        dim_target=0.1, # set level for brightness decrease
+        off_time=60, # time in seconds to turn off screen
+        powersave_dim_time=10, # time in seconds to reduce screen brightness
+        powersave_dim_target=0.1, # set level for brightness decrease
+        powersave_off_time=30, # time in seconds to turn off screen
+    )
+    display.entries = [
+        TextEntry(text="Longer text that", x=0, y=0, layer=0),
+        TextEntry(text="has been divided", x=0, y=12, layer=0, side="L"),
+        TextEntry(text="for an example", x=0, y=12, layer=0, side="R"),
+    ]
+    keyboard.extensions.append(display)
+elif name.endswith('R'):
+    print("pimoroni_trackball")
+    trackball = Trackball(
+        i2c_bus,
+        mode=TrackballMode.MOUSE_MODE,
+        angle_offset=1.0,
+        handlers=[
+            PointingHandler(),
+            ScrollHandler(scroll_direction=ScrollDirection.NATURAL),
+            KeyHandler(KC.UP, KC.RIGHT, KC.DOWN, KC.LEFT, KC.ENTER)
+        ]
+    )   
+    keyboard.modules.append(trackball)
+
 keyboard.extensions.append(MediaKeys())
 
-keyboard.modules = [layers, split]
 
 # Cleaner key names
 XXXXXXX = KC.NO
