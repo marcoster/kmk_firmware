@@ -13,7 +13,8 @@ from kmk.extensions.media_keys import MediaKeys
 from kmk.extensions.display import Display, SSD1306, TextEntry, ImageEntry
 from kmk.quickpin.pro_micro.kb2040 import pinout as pins
 
-from kmk.modules.pimoroni_trackball import PointingHandler, Trackball, TrackballMode, PointingHandler, KeyHandler, ScrollHandler, ScrollDirection
+#from kmk.modules.pimoroni_trackball import PointingHandler, Trackball, TrackballMode, PointingHandler, KeyHandler, ScrollHandler, ScrollDirection
+from kmk.modules.glidepoint import GlidePoint
 
 keyboard = KMKKeyboard()
 
@@ -60,18 +61,8 @@ if name.endswith('L'):
     ]
     keyboard.extensions.append(display)
 elif name.endswith('R'):
-    print("pimoroni_trackball")
-    trackball = Trackball(
-        i2c_bus,
-        mode=TrackballMode.MOUSE_MODE,
-        angle_offset=1.0,
-        handlers=[
-            PointingHandler(),
-            ScrollHandler(scroll_direction=ScrollDirection.NATURAL),
-            KeyHandler(KC.UP, KC.RIGHT, KC.DOWN, KC.LEFT, KC.ENTER)
-        ]
-    )   
-    keyboard.modules.append(trackball)
+    glidepoint = GlidePoint(i2c_bus)
+    keyboard.modules.append(glidepoint)
 
 keyboard.extensions.append(MediaKeys())
 
