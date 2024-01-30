@@ -1,6 +1,7 @@
 import board
 import busio
 import storage
+import time
 
 from kb import KMKKeyboard
 
@@ -14,7 +15,32 @@ from kmk.extensions.display import Display, SSD1306, TextEntry, ImageEntry
 from kmk.quickpin.pro_micro.kb2040 import pinout as pins
 
 #from kmk.modules.pimoroni_trackball import PointingHandler, Trackball, TrackballMode, PointingHandler, KeyHandler, ScrollHandler, ScrollDirection
-from kmk.modules.glidepoint import GlidePoint
+#from kmk.modules.glidepoint import GlidePoint
+from cirque import GlidePoint
+
+def scan_i2c(i2c):
+    while not i2c.try_lock():
+        pass
+    try:
+        while True:
+            print("I2C address found:", [hex(device_address) for device_address in i2c.scan()],)
+            time.sleep(2)
+    finally:
+        i2c.unlock()
+
+def test_cirque(i2c):
+    while not i2c.try_lock():
+        pass
+    try:
+        print("I2C address found:", [hex(device_address) for device_address in i2c.scan()],)
+        buffer = bytearray(8)
+        buffer[0] = 0x00 | 0xa0 # firmware id | read
+        i2c.writeto_then_readfrom(0x2a, buffer, buffer, out_end=1, in_end=2)
+        print("buffer:", buffer)
+    finally:
+        i2c.unlock()
+
+
 
 keyboard = KMKKeyboard()
 
@@ -32,8 +58,10 @@ split = Split(
 keyboard.modules = [layers, split]
 
 i2c_bus = busio.I2C(pins[5], pins[4])
-name = str(storage.getmount('/').label)
+#scan_i2c(i2c_bus)
+test_cirque(i2c_bus)
 
+name = str(storage.getmount('/').label)
 if name.endswith('L'):
     driver = SSD1306(i2c=i2c_bus, device_address=0x3C,)
     display = Display(
@@ -61,8 +89,10 @@ if name.endswith('L'):
     ]
     keyboard.extensions.append(display)
 elif name.endswith('R'):
+    print("nothing here")
     glidepoint = GlidePoint(i2c_bus)
     keyboard.modules.append(glidepoint)
+    #glidepoint.during_bootup(None)
 
 keyboard.extensions.append(MediaKeys())
 
