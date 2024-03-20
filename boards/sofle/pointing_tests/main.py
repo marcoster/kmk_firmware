@@ -10,6 +10,7 @@ from kmk.modules.encoder import EncoderHandler
 from kmk.modules.layers import Layers
 from kmk.modules.split import Split, SplitType
 from kmk.extensions.media_keys import MediaKeys
+from kmk.modules.easypoint import Easypoint
 
 from kmk.extensions.display import Display, SSD1306, TextEntry, ImageEntry
 from kmk.quickpin.pro_micro.kb2040 import pinout as pins
@@ -58,8 +59,10 @@ split = Split(
 keyboard.modules = [layers, split]
 
 i2c_bus = busio.I2C(pins[5], pins[4])
+easypoint = Easypoint(i2c_bus, address=0x40, x_offset=14, y_offset=-11, invert_x=True, invert_y=True)
+keyboard.modules.append(easypoint)
 #scan_i2c(i2c_bus)
-test_cirque(i2c_bus)
+#test_cirque(i2c_bus)
 
 name = str(storage.getmount('/').label)
 if name.endswith('L'):
