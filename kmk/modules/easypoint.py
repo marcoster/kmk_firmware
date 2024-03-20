@@ -6,6 +6,9 @@ from supervisor import ticks_ms
 
 from kmk.keys import AX
 from kmk.modules import Module
+from kmk.utils import Debug
+
+debug = Debug(__name__)
 
 I2C_ADDRESS = 0x40
 I2X_ALT_ADDRESS = 0x41
@@ -39,6 +42,8 @@ class Easypoint(Module):
         x_offset=X_OFFSET,
         dead_x=DEAD_X,
         dead_y=DEAD_Y,
+        invert_x=False,
+        invert_y=False,
     ):
         self._i2c_address = address
         self._i2c_bus = i2c
@@ -52,8 +57,13 @@ class Easypoint(Module):
         self.x_offset = x_offset
 
         # Deadzone
-        self.dead_x = DEAD_X
-        self.dead_y = DEAD_Y
+        self.dead_x = dead_x
+        self.dead_y = dead_y
+
+        # Invert
+        self.invert_x = invert_x
+        self.invert_y = invert_y
+
 
     def during_bootup(self, keyboard):
         return
@@ -69,20 +79,17 @@ class Easypoint(Module):
 
         x, y = self._read_raw_state()
 
-        # I'm a shit coder, so offset is handled in software side
-        s_x = self.getSignedNumber(x, 8) - self.x_offset
-        s_y = self.getSignedNumber(y, 8) - self.y_offset
+        s_x = self.get_signed8(x) - self.x_offset
+        s_y = self.get_signed8(y) - self.y_offset
 
-        # Evaluate Deadzone
-        if s_x in range(-self.dead_x, self.dead_x) and s_y in range(
-            -self.dead_y, self.dead_y
-        ):
-            # Within bounds, just die
-            return
-        else:
-            # Set the X/Y from easypoint
-            AX.X.move(keyboard, x)
-            AX.Y.move(keyboard, y)
+        if self.invert_x:
+            s_x = s_x * -1
+        if self.invert_y:
+            s_y = s_y * -1
+
+        if s_x < -self.dead_x or s_x > self.dead_x or s_y < -self.dead_y or s_y > self.dead_y:
+            AX.X.move(keyboard, s_x)
+            AX.Y.move(keyboard, s_y)
 
     def after_matrix_scan(self, keyboard):
         return
@@ -104,12 +111,11 @@ class Easypoint(Module):
         x, y = self._i2c_rdwr([X], length=2)
         return x, y
 
-    def getSignedNumber(self, number, bitLength=8):
-        mask = (2**bitLength) - 1
-        if number & (1 << (bitLength - 1)):
-            return number | ~mask
-        else:
-            return number & mask
+    def get_signed8(self, number):
+        number = number & 0xFF
+        if number & 0x80:
+            return number - 0xFF
+        return number 
 
     def _i2c_rdwr(self, data, length=1):
         '''Write and optionally read I2C data.'''
