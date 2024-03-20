@@ -11,6 +11,7 @@ from kmk.modules.layers import Layers
 from kmk.modules.split import Split, SplitType
 from kmk.extensions.media_keys import MediaKeys
 from kmk.modules.easypoint import Easypoint
+from kmk.modules.mouse_keys import MouseKeys
 
 from kmk.extensions.display import Display, SSD1306, TextEntry, ImageEntry
 from kmk.quickpin.pro_micro.kb2040 import pinout as pins
@@ -61,6 +62,7 @@ keyboard.modules = [layers, split]
 i2c_bus = busio.I2C(pins[5], pins[4])
 easypoint = Easypoint(i2c_bus, address=0x40, x_offset=14, y_offset=-11, invert_x=True, invert_y=True)
 keyboard.modules.append(easypoint)
+keyboard.modules.append(MouseKeys())
 #scan_i2c(i2c_bus)
 #test_cirque(i2c_bus)
 
@@ -123,18 +125,21 @@ TESTL = KC.DF(3)
 LOWER = KC.MO(4)
 RAISE = KC.MO(5)
 ADJUST = KC.MO(6)
+MOUSE = KC.MO(7)
 
 LOWERT = KC.HT(KC.TAB, KC.MO(4), prefer_hold=True, tap_interrupted=False, tap_time=200)
 RAISET = KC.HT(KC.ESC, KC.MO(5), prefer_hold=True, tap_interrupted=False, tap_time=200)
+
+MOUSET = KC.HT(KC.QUOT, KC.MO(7), prefer_hold=False, tap_interrupted=False, tap_time=100)
 
 keyboard.keymap = [
     [  # COLEMAK
         # HERE----# HERE----# HERE----# HERE----# HERE----# HERE----# HERE----#ENCODER--#ENCODER--# HERE----# HERE----# HERE----# HERE----# HERE----# HERE----# HERE----
         KC.ESC,   KC.N1,    KC.N2,    KC.N3,    KC.N4,    KC.N5,                                            KC.N6,    KC.N7,    KC.N8,    KC.N9,    KC.N0,    KC.BSPC,
         KC.TAB,   KC.Q,     KC.W,     KC.F,     KC.P,     KC.B,                                             KC.J,     KC.L,     KC.U,     KC.Y,     KC.SCLN,  KC.DEL,
-        KC.LSFT,  KC.A,     KC.R,     KC.S,     KC.T,     KC.G,                                             KC.M,     KC.N,     KC.E,     KC.I,     KC.O,     KC.QUOT,
+        KC.LSFT,  KC.A,     KC.R,     KC.S,     KC.T,     KC.G,                                             KC.M,     KC.N,     KC.E,     KC.I,     KC.O,     MOUSET,
         KC.LCTL,  KC.Z,     KC.X,     KC.C,     KC.D,     KC.V,                                             KC.K,     KC.H,     KC.COMM,  KC.DOT,   KC.SLSH,  KC.RSFT,
-                            KC.LCTL,  KC.LALT,  KC.LGUI,  LOWER,    RAISE,    KC.MUTE,  KC.MPLY,  KC.ENT,   KC.SPC,   KC.RGUI,  KC.RALT,  KC.RCTL,
+                            KC.LCTL,  KC.LALT,  KC.LGUI,  LOWERT,   RAISET,   KC.MUTE,  KC.MPLY,  KC.ENT,   KC.SPC,   KC.RGUI,  KC.RALT,  KC.RCTL,
     ],
     [  # QWERTY
         # HERE----# HERE----# HERE----# HERE----# HERE----# HERE----# HERE----#ENCODER--#ENCODER--# HERE----# HERE----# HERE----# HERE----# HERE----# HERE----# HERE----
@@ -158,7 +163,7 @@ keyboard.keymap = [
         KC.TAB,   KC.Q,     KC.W,     KC.F,     KC.P,     KC.B,                                             KC.J,     KC.L,     KC.U,     KC.Y,     KC.SCLN,  KC.DEL,
         KC.LSFT,  KC.A,     KC.R,     KC.S,     KC.T,     KC.G,                                             KC.M,     KC.N,     KC.E,     KC.I,     KC.O,     KC.QUOT,
         KC.LCTL,  KC.Z,     KC.X,     KC.C,     KC.D,     KC.V,                                             KC.K,     KC.H,     KC.COMM,  KC.DOT,   KC.SLSH,  KC.RSFT,
-                            KC.LCTL,  KC.LALT,  KC.LGUI,  LOWERT,   RAISET,   KC.MUTE,  KC.MPLY,  KC.ENT,   KC.SPC,   KC.RGUI,  KC.RALT,  KC.RCTL,
+                            KC.LCTL,  KC.LALT,  KC.LGUI,  LOWER,    RAISE,    KC.MUTE,  KC.MPLY,  KC.ENT,   KC.SPC,   KC.RGUI,  KC.RALT,  KC.RCTL,
     ],
     [  #LOWER
         # HERE----# HERE----# HERE----# HERE----# HERE----# HERE----# HERE----#ENCODER--#ENCODER--# HERE----# HERE----# HERE----# HERE----# HERE----# HERE----# HERE----
@@ -183,7 +188,16 @@ keyboard.keymap = [
         KC.TRNS,  KC.LEFT,  KC.DOWN,  KC.RIGHT, XXXXXXX,  KC.CAPS,                                          KC.PGDN,  KC.LEFT,  KC.DOWN,  KC.RGHT,  KC.DEL,   KC.BSPC,
         KC.TRNS,  UNDO,     CUT,      COPY,     PASTE,    XXXXXXX,                                          XXXXXXX,  LSTRT,    XXXXXXX,  LEND,     XXXXXXX,  KC.TRNS,
                             KC.TRNS,  KC.TRNS,  KC.TRNS,  KC.TRNS,  KC.TRNS,  KC.TRNS,  KC.TRNS,  KC.TRNS,  KC.TRNS,  KC.TRNS,  KC.TRNS,  KC.TRNS,
+    ],
+    [  #MOUSE
+        # HERE----# HERE----# HERE----# HERE----# HERE----# HERE----# HERE----#ENCODER--#ENCODER--# HERE----# HERE----# HERE----  # HERE---- # HERE----  # HERE----# HERE----
+        KC.TRNS,  XXXXXXX,  XXXXXXX,  XXXXXXX,  XXXXXXX,  XXXXXXX,                                          XXXXXXX,  XXXXXXX,    KC.MW_UP,  XXXXXXX,    XXXXXXX,  XXXXXXX,
+        KC.TRNS,  XXXXXXX,  XXXXXXX,  XXXXXXX,  XXXXXXX,  XXXXXXX,                                          XXXXXXX,  KC.MB_BTN4, KC.MW_DN,  KC.MB_BTN5, XXXXXXX,  XXXXXXX,
+        KC.TRNS,  XXXXXXX,  XXXXXXX,  XXXXXXX,  XXXXXXX,  XXXXXXX,                                          XXXXXXX,  KC.MB_LMB,  KC.MB_MMB, KC.MB_RMB,  XXXXXXX,  XXXXXXX,
+        KC.TRNS,  UNDO,     CUT,      COPY,     PASTE,    XXXXXXX,                                          XXXXXXX,  XXXXXXX,    XXXXXXX,   XXXXXXX,    XXXXXXX,  XXXXXXX,
+                            KC.TRNS,  KC.TRNS,  KC.TRNS,  KC.TRNS,  KC.TRNS,  KC.TRNS,  KC.TRNS,  KC.TRNS,  KC.TRNS,  KC.TRNS,    KC.TRNS,   KC.TRNS,
     ]
+
 ]
 
 encoder_handler = EncoderHandler()
