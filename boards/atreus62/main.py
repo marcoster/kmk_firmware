@@ -24,10 +24,11 @@ XXXXXXX = KC.NO
 layers = Layers()
 
 # 1 encoder, no button, inversed = True
-encoder = EncoderHandler(
-    (board.D40, board.D41, None, True),
-)
-keyboard.modules = [layers, encoder]
+#encoder = EncoderHandler(
+#    (board.D40, board.D41, None, True),
+#)
+#keyboard.modules = [layers, encoder]
+keyboard.modules = [layers]
 
 keyboard.tap_time = 250
 keyboard.debug_enabled = False

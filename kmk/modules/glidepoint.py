@@ -5,9 +5,11 @@ except ImportError:
 
 from micropython import const
 
-from kmk.keys import AX
+from kmk.keys import AX, KC
 from kmk.modules import Module
 from kmk.utils import Debug
+
+import time
 
 debug = Debug(__name__)
 
@@ -22,6 +24,7 @@ _REG_STATUS = const(0x02)
 _REG_SYS_CFG = const(0x03)
 _REG_FEED_CFG1 = const(0x04)
 _REG_FEED_CFG2 = const(0x05)
+_REG_FEED_CFG3 = const(0x06)
 _REG_CAL_CFG = const(0x07)
 _REG_AUX_CTL = const(0x08)
 _REG_SAMPLE_RATE = const(0x09)
@@ -30,6 +33,24 @@ _REG_Z_SCALER = const(0x0B)
 _REG_SLEEP_INTERVAL = const(0x0C)
 _REG_SLEEP_TIMER = const(0x0D)
 _REG_DATA = const(0x12)
+
+_EXT_REG_AXS_VALUE = const(0x1C)
+_EXT_REG_AXS_ADDR_HIGH = const(0x1C)
+_EXT_REG_AXS_ADDR_LOW = const(0x1D)
+_EXT_REG_AXS_CTRL = const(0x1E)
+_EXT_REG_ADCCONFIG = const(0x0187)
+
+_EREG_AXS_READ = const(0x01)
+_EREG_AXS_WRITE = const(0x02)
+_EREG_AXS_INC_ADDR_READ = const(0x04)
+
+_EREG_ADCCONFIG_ADC_ATTENUATE_MASK = const(0xC2)
+_EREG_ADCCONFIG_ADC_ATTENUATE_1X = const(0x00)
+_EREG_ADCCONFIG_ADC_ATTENUATE_2X = const(0x40)
+_EREG_ADCCONFIG_ADC_ATTENUATE_3X = const(0x80)
+_EREG_ADCCONFIG_ADC_ATTENUATE_4X = const(0xC0)
+
+_CAL_CFG_CALIBRATE = const(0x01)
 
 _FEED1_ENABLE = const(0x01)
 _FEED1_ABSOLUTE = const(0x02)
@@ -46,27 +67,13 @@ _FEED2_NO_SCROLL = const(0x08)
 _FEED2_NO_GLIDEEXTEND = const(0x10)
 _FEED2_SWAP_XY = const(0x80)
 
-
-def with_i2c_lock(rw: Callable[[object, int], None]) -> Callable[[object, int], None]:
-    def _(self, n: int) -> None:
-        if not self._i2c.try_lock():
-            if debug.enabled:
-                debug("can't acquire lock")
-            return
-        try:
-            rw(self, n)
-        finally:
-            self._i2c.unlock()
-
-    return _
+_FEED3_DISABLE_CROSS_RATE_SMOOTHING = const(0x02)
 
 
 class AbsoluteHandler:
     cfg = (
-        _REG_FEED_CFG2,
-        0x00,
-        _REG_FEED_CFG1,
-        _FEED1_ENABLE | _FEED1_NO_FILTER | _FEED1_ABSOLUTE | _FEED1_INVERT_X,
+        (_REG_FEED_CFG2, 0x00),
+        (_REG_FEED_CFG1, _FEED1_ENABLE | _FEED1_NO_FILTER | _FEED1_ABSOLUTE | _FEED1_INVERT_X)
     )
 
     def handle(buffer: bytearray, keyboard) -> None:
@@ -94,13 +101,14 @@ class AbsoluteHandler:
 
 class RelativeHandler:
     cfg = (
-        _REG_FEED_CFG2,
-        0x00,
-        _REG_FEED_CFG1,
-        _FEED1_ENABLE | _FEED1_NO_FILTER | _FEED1_INVERT_X,
+        #(_REG_FEED_CFG2, _FEED2_NO_GLIDEEXTEND | _FEED2_INTELLIMOUSE ),
+        (_REG_FEED_CFG2, _FEED2_NO_GLIDEEXTEND | _FEED2_INTELLIMOUSE | _FEED2_NO_SEC_TAPS | _FEED2_NO_SCROLL),
+        (_REG_FEED_CFG1, 0x00)
     )
+    def __init__(self):
+        self._button_left_tapped = False
 
-    def handle(buffer: bytearray, keyboard) -> None:
+    def handle(self, buffer: bytearray, keyboard) -> None:
         button = buffer[0] & 0b00000111
         x_sign = buffer[0] & 0b00010000
         y_sign = buffer[0] & 0b00100000
@@ -116,7 +124,14 @@ class RelativeHandler:
         if x_delta != 0:
             AX.X.move(keyboard, x_delta)
         if y_delta != 0:
-            AX.Y.move(keyboard, y_delta)
+            AX.Y.move(keyboard, -y_delta)
+
+        if button & 0x01:
+            if(self._button_left_tapped == False):
+                self._button_left_tapped = True
+                keyboard.tap_key(KC.MB_LMB)
+        else:
+            self._button_left_tapped = False
 
         if debug.enabled:
             debug(
@@ -134,52 +149,114 @@ class RelativeHandler:
 class GlidePoint(Module):
     def __init__(self, i2c):
         self._i2c = i2c
-        self._buffer = bytearray(8)
 
-        # self.handler = RelativeHandler
-        self.handler = AbsoluteHandler
+        self.handler = RelativeHandler()
+        #self.handler = AbsoluteHandler
 
-    @with_i2c_lock
-    def _read(self, n: int) -> None:
-        self._buffer[0] |= _MASK_READ
-        self._i2c.writeto_then_readfrom(
-            _ADDRESS, self._buffer, self._buffer, out_end=1, in_end=n
-        )
+    def _read(self, addr, n):
+        rbuf = bytearray(n)
+        wbuf = bytearray(1)
+        wbuf[0] = addr | _MASK_READ
 
-    @with_i2c_lock
-    def _write(self, n: int) -> None:
-        for i in range(0, n, 2):
-            self._buffer[i] |= _MASK_WRITE
-        self._i2c.writeto(_ADDRESS, self._buffer, end=n)
+        while not self._i2c.try_lock():
+            pass
+        try:
+            self._i2c.writeto_then_readfrom(_ADDRESS, wbuf, rbuf)
+            return rbuf
+        finally:
+            self._i2c.unlock()
+
+    def _read_extended(self, addr, n):
+        rbuf = bytearray(n)
+        self._enable_feed(False)
+        self._write(_EXT_REG_AXS_ADDR_HIGH, addr >> 8)
+        self._write(_EXT_REG_AXS_ADDR_LOW, addr & 0xFF)
+
+        for i in range(0, n):
+            self._write(_EXT_REG_AXS_CTRL, _EREG_AXS_INC_ADDR_READ | _EREG_AXS_READ)
+            time.sleep(0.021)
+            rbuf[i] = self._read(_EXT_REG_AXS_VALUE, 1)[0]
+        self._clear_flags()
+        return rbuf
+
+    def _write(self, addr, data):
+        wbuf = bytearray(2)
+        wbuf[0] = addr | _MASK_WRITE
+        wbuf[1] = data
+        while not self._i2c.try_lock():
+            pass
+        try:
+            self._i2c.writeto(_ADDRESS, wbuf)
+        finally:
+            self._i2c.unlock()
+
+    def _write_extended(self, addr, data):
+        self._enable_feed(False)
+        self._write(_EXT_REG_AXS_VALUE, data)
+        self._write(_EXT_REG_AXS_ADDR_HIGH, addr >> 8)
+        self._write(_EXT_REG_AXS_ADDR_LOW, addr & 0xFF)
+        self._write(_EXT_REG_AXS_CTRL, _EREG_AXS_WRITE)
+        time.sleep(0.021)
+        self._clear_flags()
 
     def _check_firmware(self) -> bool:
-        self._buffer[0] = _REG_FW_ID
-        self._read(2)
-        return self._buffer[:2] == b'\x07:'
+        fw = self._read(_REG_FW_ID, 2)
+        return fw[:2] == b'\x07:'
 
-    def _clear_status_flags(self) -> None:
-        self._buffer[0] = _REG_STATUS
-        self._buffer[1] = 0x00
-        self._write(2)
+    def _clear_flags(self) -> None:
+        self._write(_REG_STATUS, 0x00)
+
+    def _enable_feed(self, enable):
+        en = self._read(_REG_FEED_CFG1, 1)
+        if enable:
+            self._write(_REG_FEED_CFG1, en[0] | _FEED1_ENABLE)
+        else:
+            self._write(_REG_FEED_CFG1, en[0] & ~_FEED1_ENABLE)
+
+    def _set_adc_attenuation(self, gain):
+        adcconfig = self._read_extended(_EXT_REG_ADCCONFIG, 1)
+        adcconfig = adcconfig[0]
+        gain &= _EREG_ADCCONFIG_ADC_ATTENUATE_MASK
+        if gain == adcconfig & _EREG_ADCCONFIG_ADC_ATTENUATE_MASK:
+            return False
+        adcconfig &= ~_EREG_ADCCONFIG_ADC_ATTENUATE_MASK
+        adcconfig |= gain
+        self._write_extended(_EXT_REG_ADCCONFIG, adcconfig)
+        return True
+
+    def _calibrate(self):
+        cal = self._read(_REG_CAL_CFG, 1)
+        cal = cal[0]
+        cal |= _CAL_CFG_CALIBRATE
+        self._write(_REG_CAL_CFG, cal)
+        time.sleep(0.2)
+        self._clear_flags()
+
+    def cursor_smoothing(self, enable):
+        en = self._read(_REG_FEED_CFG3, 1)
+        if enable:
+            self._write(_REG_FEED_CFG3, en[0] & ~_FEED3_DISABLE_CROSS_RATE_SMOOTHING)
+        else:
+            self._write(_REG_FEED_CFG3, en[0] | _FEED3_DISABLE_CROSS_RATE_SMOOTHING)
 
     def _configure(self) -> None:
-        self._buffer[0] = _REG_SYS_CFG
-        self._buffer[1] = 0x00
-        for idx, val in enumerate(self.handler.cfg):
-            self._buffer[idx + 2] = val
-        self._write(2 + len(self.handler.cfg))
+        for cfg in self.handler.cfg:
+            self._write(cfg[0], cfg[1])
 
     def _data_ready(self) -> bool:
-        self._buffer[0] = _REG_STATUS
-        self._read(1)
-        return self._buffer[0] != 0x00
+        data_ready = self._read(_REG_STATUS, 1)
+        return data_ready[0] != 0x00
 
     def during_bootup(self, keyboard):
         if not self._check_firmware:
             raise OSError('Firmware ID mismatch')
-
-        self._clear_status_flags()
+        self._write(_REG_SYS_CFG, 0x01) # reset
+        time.sleep(0.03)
+        self._clear_flags()
         self._configure()
+        self._set_adc_attenuation(_EREG_ADCCONFIG_ADC_ATTENUATE_4X)
+        self._calibrate()
+        self._enable_feed(True)
 
     def before_matrix_scan(self, keyboard):
         pass
@@ -188,12 +265,11 @@ class GlidePoint(Module):
         if not self._data_ready():
             return
 
-        self._buffer[0] = _REG_DATA
-        self._read(6)
+        data = self._read(_REG_DATA, 6)
 
-        self.handler.handle(self._buffer, keyboard)
+        self.handler.handle(data, keyboard)
 
-        self._clear_status_flags()
+        self._clear_flags()
 
     def before_hid_send(self, keyboard):
         pass
@@ -202,11 +278,7 @@ class GlidePoint(Module):
         pass
 
     def on_powersave_enable(self, keyboard):
-        self._buffer[0] = _REG_SYS_CFG
-        self._buffer[1] = 0x04
-        self._write(2)
+        self._write(_REG_SYS_CFG, 0x04)
 
     def on_powersave_disable(self, keyboard):
-        self._buffer[0] = _REG_SYS_CFG
-        self._buffer[1] = 0x00
-        self._write(2)
+        self._write(_REG_SYS_CFG, 0x00)
